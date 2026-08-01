@@ -13,6 +13,8 @@ const pages = {
   Categories: "categories",
   Courses: "courses",
   Lessons: "lessons",
+  Topics: "topics",
+  "Learning content": "sections",
   Students: "students",
   Orders: "orders",
   Resources: "downloadable-resources",
