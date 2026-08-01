@@ -1,0 +1,39 @@
+name: Deploy Admin to MDEV
+
+on:
+  push:
+    branches:
+      - dev
+
+concurrency:
+  group: aplus-ict-admin-mdev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Admin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          DEV_HOST: ${{ secrets.DEV_HOST }}
+          DEV_SSH_KEY: ${{ secrets.DEV_SSH_KEY }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$DEV_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -H "$DEV_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy Admin to MDEV
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            "${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}" \
+            "/srv/aplus-ict/deploy/deploy-admin.sh"
