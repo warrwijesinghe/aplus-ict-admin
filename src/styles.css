@@ -315,6 +315,10 @@ td:first-child {
   color: var(--ink-muted);
   margin: 1rem 0;
 }
+.payments-page td small { display: block; margin-top: .25rem; }
+.payments-page td:last-child { display: flex; flex-wrap: wrap; gap: .4rem; }
+.payments-page td:last-child button { background: var(--brand-red); border: 0; border-radius: .45rem; color: white; padding: .45rem .6rem; }
+.payments-page td:last-child button:last-child { background: #6d5b5f; }
 
 @media (max-width: 760px) {
   .shell {

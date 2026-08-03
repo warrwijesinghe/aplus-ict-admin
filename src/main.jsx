@@ -17,6 +17,7 @@ const pages = {
   "Learning content": "sections",
   Students: "students",
   Orders: "orders",
+  Payments: "payments",
   Resources: "downloadable-resources",
 };
 const logoSource = `${import.meta.env.BASE_URL}images/aplus-ict-logo.png`;
@@ -106,6 +107,38 @@ function GenericList({ title, path }) {
       )}
     </section>
   );
+}
+
+function Payments() {
+  const [rows, setRows] = useState([]);
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const load = useCallback(async () => {
+    try { setError(""); setRows(unwrap(await api.get("/api/v1/admin/payments"))); }
+    catch (err) { setError(err.response?.data?.error?.message || "Unable to load payments"); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const act = async (payment, action) => {
+    const rejectionReason = action === "reject" ? window.prompt("Reason for rejecting this payment:") : null;
+    if (action === "reject" && !rejectionReason?.trim()) return;
+    setBusyId(payment.id);
+    try {
+      await api.post(`/api/v1/admin/payments/${payment.id}/${action}`, action === "reject" ? { rejectionReason } : {});
+      await load();
+    } catch (err) { setError(err.response?.data?.error?.message || "Unable to review payment"); }
+    finally { setBusyId(""); }
+  };
+  const viewSlip = async (payment) => {
+    try {
+      const response = await api.get(`/api/v1/payments/${payment.id}/slip`, { responseType: "blob" });
+      const url = URL.createObjectURL(response.data);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) { setError(err.response?.data?.error?.message || "Unable to open the private payment slip"); }
+  };
+  return <section className="payments-page"><div className="admin-page-heading"><div><p className="admin-kicker">Revenue review</p><h2>Payments</h2><p>Review submitted bank transfers once. Confirmation grants the related Exam Success Pack.</p></div></div>
+    {error ? <p className="admin-error">{error}</p> : null}
+    <div className="resource-table-wrap"><table><thead><tr><th>Payment</th><th>Student</th><th>Items</th><th>Amount</th><th>Reference</th><th>Status</th><th>Actions</th></tr></thead><tbody>{rows.map((payment) => <tr key={payment.id}><td>{payment.id}<small>{payment.orderNumber}</small></td><td><strong>{payment.student?.name || "Student"}</strong><small>{payment.student?.email}</small><small>{payment.student?.mobileNumber || payment.student?.whatsAppNumber || "No phone"}</small></td><td>{payment.items?.map((item) => <small key={item.id}>{item.product || item.name} · {item.lesson}</small>)}</td><td>{payment.amount} / {payment.expectedTotal}</td><td>{payment.reference || "—"}</td><td>{payment.status}{payment.rejectionReason ? <small>{payment.rejectionReason}</small> : null}</td><td>{payment.paymentSlipResourceId ? <button onClick={() => viewSlip(payment)} type="button">View slip</button> : null}{payment.status === "submitted" ? <><button disabled={busyId === payment.id} onClick={() => act(payment, "confirm")} type="button">Confirm</button><button disabled={busyId === payment.id} onClick={() => act(payment, "reject")} type="button">Reject</button></> : null}</td></tr>)}</tbody></table>{!rows.length ? <p className="resource-empty">No payments have been submitted yet.</p> : null}</div></section>;
 }
 
 const emptyResourceForm = () => ({
@@ -359,6 +392,7 @@ function DownloadableResources() {
 }
 
 function List({ title, path }) {
+  if (path === "payments") return <Payments />;
   return path === "downloadable-resources" ? (
     <DownloadableResources />
   ) : (
