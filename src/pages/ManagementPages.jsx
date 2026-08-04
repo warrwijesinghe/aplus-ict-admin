@@ -20,6 +20,12 @@ export const RolesPage = () => {
   return <section><h2>Roles</h2>{error ? <p className="admin-error">{error}</p> : <table><thead><tr><th>Role</th><th>Description</th><th>Permissions</th></tr></thead><tbody>{roles.map((role) => <tr key={role.id}><td>{role.name}</td><td>{role.description}</td><td>{role.Permissions?.map((permission) => permission.code).join(", ")}</td></tr>)}</tbody></table>}</section>;
 };
 
+export const EducatorWorkspacePage = () => {
+  const [tracks, setTracks] = useState([]); const [error, setError] = useState("");
+  useEffect(() => { api.get("/api/v1/educator/tracks").then(unwrap).then(setTracks).catch((e) => setError(e.response?.data?.error?.message || "Unable to load assigned courses")); }, []);
+  return <section><h2>My assigned courses</h2>{error ? <p className="admin-error">{error}</p> : tracks.length ? <table><thead><tr><th>Course track</th><th>Course</th><th>Medium</th><th>Permitted actions</th></tr></thead><tbody>{tracks.map(({ assignmentId, track, capabilities }) => <tr key={assignmentId}><td>{track?.title}</td><td>{track?.Course?.titleEn || track?.Course?.title}</td><td>{track?.Medium?.name}</td><td>{Object.entries(capabilities).filter(([, value]) => value).map(([key]) => key.replace("canManage", "Manage ").replace("canGradeAssignments", "Grade assignments").replace("canViewStudents", "View students")).join(", ") || "View"}</td></tr>)}</tbody></table> : <p className="resource-empty">You do not have any active course assignments. Ask an administrator to assign a course track.</p>}</section>;
+};
+
 const initialAssignment = { userId: "", courseId: "", courseTrackId: "", assignmentRole: "teacher", canManageContent: true, canManageQuestions: false, canManageQuizzes: false, canGradeAssignments: false, canViewStudents: false };
 export const AssignmentManagementPage = () => {
   const [rows, setRows] = useState([]); const [educators, setEducators] = useState([]); const [courses, setCourses] = useState([]); const [tracks, setTracks] = useState([]); const [form, setForm] = useState(initialAssignment); const [error, setError] = useState("");
