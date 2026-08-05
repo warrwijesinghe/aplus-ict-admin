@@ -319,6 +319,33 @@ td:first-child {
 .payments-page td:last-child { display: flex; flex-wrap: wrap; gap: .4rem; }
 .payments-page td:last-child button { background: var(--brand-red); border: 0; border-radius: .45rem; color: white; padding: .45rem .6rem; }
 .payments-page td:last-child button:last-child { background: #6d5b5f; }
+.course-builder { max-width: 1480px; }
+.builder-notice { background: #edfff1; border: 1px solid #bce7c5; border-radius: .55rem; color: #176332; padding: .75rem .9rem; }
+.builder-context, .builder-form { display: grid; gap: .85rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.builder-context { background: var(--surface); border: 1px solid var(--border); border-radius: .85rem; margin-bottom: 1rem; padding: 1rem; }
+.builder-context label, .builder-form label { color: var(--ink-muted); display: grid; font-size: .8rem; font-weight: 700; gap: .35rem; }
+.builder-context select, .builder-form input, .builder-form select, .builder-form textarea { background: #fff; border: 1px solid var(--border); border-radius: .45rem; min-height: 2.45rem; padding: .5rem .6rem; width: 100%; }
+.builder-form textarea { min-height: 7rem; resize: vertical; }
+.builder-layout { display: grid; gap: 1rem; grid-template-columns: minmax(280px, .85fr) minmax(0, 1.4fr); }
+.builder-tree, .builder-editor { background: var(--surface); border: 1px solid var(--border); border-radius: .85rem; box-shadow: 0 16px 36px rgba(55,23,28,.07); padding: 1rem; }
+.tree-heading { align-items: center; display: flex; gap: .5rem; justify-content: space-between; margin-bottom: .75rem; }
+.tree-heading h3 { margin: 0; }
+.tree-heading button, .builder-actions button, .tree-add { background: var(--brand-red); border: 0; border-radius: .42rem; color: #fff; font-weight: 700; padding: .48rem .65rem; }
+.tree-lesson, .tree-topic { border-left: 2px solid var(--border); margin: .4rem 0; padding-left: .55rem; }
+.tree-topic { margin-left: .8rem; }
+.tree-activity { align-items: center; display: flex; margin: .32rem 0 .32rem 1.3rem; }
+.tree-lesson > div:first-child, .tree-topic > div:first-child { align-items: center; display: flex; }
+.tree-lesson button:not(.tree-add), .tree-topic button:not(.tree-add), .tree-activity button:not(.tree-add) { background: transparent; border: 0; color: var(--ink); padding: .35rem; text-align: left; }
+.tree-lesson button.selected, .tree-topic button.selected, .tree-activity button.selected { background: var(--brand-soft); border-radius: .35rem; color: var(--brand-red-dark); }
+.tree-lesson button small, .tree-topic button small, .tree-activity button small { color: var(--ink-muted); display: block; font-size: .68rem; }
+.tree-add { background: #6d5b5f; font-size: .75rem; margin: .35rem 0; }
+.status-pill { background: var(--brand-soft); border-radius: 999px; color: var(--brand-red-dark); font-size: .72rem; font-weight: 750; padding: .28rem .55rem; text-transform: uppercase; }
+.builder-wide { grid-column: 1 / -1; }
+.builder-wide > .resource-picker { border: 1px solid var(--border); border-radius: .5rem; padding: .7rem; }
+.builder-limited { background: #fff9e5; border: 1px solid #ead79c; border-radius: .5rem; color: #70550b; grid-column: 1 / -1; padding: .7rem; }
+.builder-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1rem; }
+.builder-actions button:nth-child(2) { background: #6d5b5f; }
+.builder-actions button:last-child { background: #88242d; }
 
 @media (max-width: 760px) {
   .shell {
@@ -349,6 +376,8 @@ td:first-child {
   .resource-form {
     grid-template-columns: 1fr 1fr;
   }
+  .builder-layout { grid-template-columns: 1fr; }
+  .builder-context, .builder-form { grid-template-columns: 1fr 1fr; }
   .resource-file-field {
     grid-column: span 1;
   }
@@ -362,6 +391,7 @@ td:first-child {
   .resource-form {
     grid-template-columns: 1fr;
   }
+  .builder-context, .builder-form { grid-template-columns: 1fr; }
   .resource-file-field {
     grid-column: auto;
   }
