@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { AssignmentManagementPage, DownloadableResourcesPage, EducatorWorkspacePage, EducatorsPage, GenericList, PaymentsPage, RolesPage } from "../pages/ManagementPages.jsx";
+import { AssignmentManagementPage, DirectPayPaymentsPage, DownloadableResourcesPage, EducatorWorkspacePage, EducatorsPage, GenericList, PaymentsPage, RolesPage } from "../pages/ManagementPages.jsx";
 import { ResourceLibraryPage } from "../pages/ResourceLibraryPage.jsx";
 import { CourseContentPage, CoursesPage } from "../pages/CourseContentPage.jsx";
 import { QuestionBankPage } from "../pages/QuestionBankPage.jsx";
@@ -10,7 +10,7 @@ import { OrdersPage, ProductsPage } from "../pages/CommercePages.jsx";
 
 const pages = [["Dashboard", "educator-workspace", "tracks.read", false], ["Courses", "courses", "tracks.read", false], ["Question Bank", "question-bank", "questions.read", false], ["Users", "educators", "educators.read", true], ["Resources", "resources", "resources.read", true], ["Categories", "categories", "courses.read", true], ["Lessons", "lessons", "lessons.read", true], ["Topics", "topics", "topics.read", true], ["Learning content", "sections", "activities.read", true], ["Students", "students", "students.read", true], ["Products", "products", "products.view", true], ["Orders", "orders", "orders.view", true], ["Payments", "payments", "payments.read", true], ["Course assignments", "educator-assignments", "educators.assign", true], ["Roles", "roles", "roles.read", true]];
 const lightLogoSource = `${import.meta.env.BASE_URL}images/aplus-ict-logo-light.png`;
-const pageElement = (title, path) => path === "educator-workspace" ? <EducatorWorkspacePage /> : path === "courses" ? <CoursesPage /> : path === "question-bank" ? <QuestionBankPage /> : path === "products" ? <ProductsPage /> : path === "orders" ? <OrdersPage /> : path === "payments" ? <PaymentsPage /> : path === "resources" ? <ResourceLibraryPage /> : path === "downloadable-resources" ? <DownloadableResourcesPage /> : path === "educators" ? <EducatorsPage /> : path === "educator-assignments" ? <AssignmentManagementPage /> : path === "roles" ? <RolesPage /> : path === "students" ? <StudentsPage /> : <GenericList path={path} title={title} />;
+const pageElement = (title, path) => path === "educator-workspace" ? <EducatorWorkspacePage /> : path === "courses" ? <CoursesPage /> : path === "question-bank" ? <QuestionBankPage /> : path === "products" ? <ProductsPage /> : path === "orders" ? <OrdersPage /> : path === "payments" ? <><PaymentsPage /><DirectPayPaymentsPage /></> : path === "resources" ? <ResourceLibraryPage /> : path === "downloadable-resources" ? <DownloadableResourcesPage /> : path === "educators" ? <EducatorsPage /> : path === "educator-assignments" ? <AssignmentManagementPage /> : path === "roles" ? <RolesPage /> : path === "students" ? <StudentsPage /> : <GenericList path={path} title={title} />;
 
 export const AdminShell = ({ user }) => {
   const isAdministrator = ["admin", "super_admin"].includes(user.role);
