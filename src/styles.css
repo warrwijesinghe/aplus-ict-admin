@@ -333,6 +333,16 @@ td:first-child {
 .payments-page td:last-child { display: flex; flex-wrap: wrap; gap: .4rem; }
 .payments-page td:last-child button { background: var(--brand-red); border: 0; border-radius: .45rem; color: white; padding: .45rem .6rem; }
 .payments-page td:last-child button:last-child { background: #6d5b5f; }
+.sms-compose { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sms-text { grid-column: 1 / -1; }
+.sms-text small, .sms-message small, .sms-page td small { color: var(--ink-muted); display: block; font-size: .72rem; margin-top: .25rem; }
+.sms-message { max-width: 330px; white-space: normal; }
+.sms-message strong { display: block; }
+.sms-category { color: var(--brand-red-dark); display: block; font-size: .75rem; letter-spacing: .06em; }
+.sms-status { border-radius: 99px; display: inline-block; font-size: .68rem; font-weight: 800; letter-spacing: .04em; padding: .28rem .55rem; text-transform: uppercase; }
+.sms-status.queued { background: #fff5dc; color: #76550c; }.sms-status.sending { background: #e6f1ff; color: #1d548d; }.sms-status.sent { background: #e5f8eb; color: #176332; }.sms-status.failed { background: #fff1f1; color: #a52525; }
+.sms-page td:last-child button { background: var(--brand-red); border: 0; border-radius: .45rem; color: white; padding: .45rem .6rem; }
+.sms-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 620px; }
 .course-content { max-width: 1180px; }
 .content-header { align-items: start; border-bottom: 1px solid var(--border); display: flex; gap: 1.5rem; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1.25rem; }
 .content-header nav { color: var(--ink-muted); font-size: .85rem; margin-bottom: 1rem; }
@@ -397,6 +407,7 @@ td:first-child {
   .resource-form {
     grid-template-columns: 1fr 1fr;
   }
+  .sms-compose { grid-template-columns: 1fr 1fr; }
   .content-header { align-items: stretch; flex-direction: column; }
   .question-filters { grid-template-columns: 1fr 1fr; }
   .quiz-questions, .random-rules { grid-template-columns: 1fr; }
@@ -414,6 +425,7 @@ td:first-child {
   .resource-form {
     grid-template-columns: 1fr;
   }
+  .sms-compose { grid-template-columns: 1fr; }
   .activity-row { align-items: start; grid-template-columns: 2.35rem minmax(0, 1fr); }
   .activity-badges { grid-column: 2; }
   .type-grid, .form-pair { grid-template-columns: 1fr; }
