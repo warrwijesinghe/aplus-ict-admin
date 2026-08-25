@@ -48,6 +48,7 @@ export const StudentsPage = () => {
     profileStatus: "",
     hasEnrolment: "",
     page: 1,
+    pageSize: 100,
   });
   const [data, setData] = useState({ items: [], pagination: {} });
   const [error, setError] = useState("");
@@ -79,6 +80,10 @@ export const StudentsPage = () => {
           <p>
             Search profiles and review only the information needed to support
             learning.
+          </p>
+          <p className="admin-page-count">
+            {data.pagination.total ?? 0} registered student
+            {data.pagination.total === 1 ? "" : "s"}
           </p>
         </div>
       </div>
