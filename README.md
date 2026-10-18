@@ -4,6 +4,8 @@ The A Plus ICT Admin application is a React/Vite foundation for managing the con
 
 The application is organised into `src/app`, `src/api`, `src/auth`, `src/layouts`, and `src/pages`. It retains the existing `aplus_admin_token` handling and API routes while preparing the UI for future LMS authoring features.
 
+Staff management and authoring live here. Use **Courses → Course setup** to create a course and its medium, then open the medium to manage lessons, topics and activities. The **Legacy lesson editor** retains access to ungrouped lesson sections and catalogue order. Student dashboards and the learning experience remain in Web.
+
 ```powershell
 copy .env.example .env
 npm install

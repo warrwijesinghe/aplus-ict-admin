@@ -1,12 +1,12 @@
 :root {
-  --brand-red: #e11d2e;
-  --brand-red-dark: #bc1424;
-  --brand-soft: #fff0f1;
-  --ink: #171317;
-  --ink-muted: #6d5b5f;
-  --canvas: #fffafa;
+  --brand-red: #bb0000;
+  --brand-red-dark: #900000;
+  --brand-soft: #fff0f0;
+  --ink: #1a1a1a;
+  --ink-muted: #5c5c5c;
+  --canvas: #fafafa;
   --surface: #ffffff;
-  --border: #f0dadd;
+  --border: #e8e8e8;
 }
 
 .student-filters { background: #fff; border: 1px solid #d9e0ea; border-radius: .65rem; margin: 1rem 0; padding: .8rem 1rem; }
@@ -55,7 +55,7 @@ button {
   min-height: 100vh;
 }
 aside {
-  background: linear-gradient(170deg, #171317 0%, #2a1a1d 72%, #4b161c 100%);
+  background: linear-gradient(170deg, #111 0%, #1c1c1c 72%, #300000 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -90,7 +90,7 @@ aside button {
 }
 aside a.active,
 aside a:hover {
-  background: rgba(225, 29, 46, 0.18);
+  background: rgba(187, 0, 0, 0.2);
   color: #fff;
 }
 aside button {
@@ -189,7 +189,7 @@ td:first-child {
 }
 .login input:focus {
   border-color: var(--brand-red);
-  box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.13);
+  box-shadow: 0 0 0 3px rgba(187, 0, 0, 0.13);
   outline: 0;
 }
 .login button {
@@ -279,7 +279,7 @@ td:first-child {
 .resource-form textarea:focus,
 .downloadable-resources td select:focus {
   border-color: var(--brand-red);
-  box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.13);
+  box-shadow: 0 0 0 3px rgba(187, 0, 0, 0.13);
   outline: 0;
 }
 .resource-file-field {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, unwrap } from "../api/client.js";
 
-const logoSource = `${import.meta.env.BASE_URL}images/aplus-ict-logo.png`;
+const logoSource = `${import.meta.env.BASE_URL}images/aplus-brand-on-light.png`;
 
 export const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +12,7 @@ export const LoginPage = () => {
     try {
       const result = unwrap(await api.post("/api/v1/auth/admin/login", { email, password }));
       localStorage.setItem("aplus_admin_token", result.accessToken);
-      location.assign("/");
+      location.assign(import.meta.env.BASE_URL);
     } catch (requestError) {
       setError(requestError.response?.data?.error?.message || "Login failed");
     }
