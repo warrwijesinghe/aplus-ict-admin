@@ -435,3 +435,10 @@ td:first-child {
     grid-column: auto;
   }
 }
+
+.landing-content-editor { display: grid; gap: 16px; padding: 20px; border: 1px solid #dedede; border-radius: 12px; margin: 16px 0; min-width: 0; }
+.landing-content-editor legend { padding: 0 8px; font-weight: 700; }
+.landing-content-editor p { font-size: .85rem; line-height: 1.65; color: #555; margin: 0; }
+.landing-content-editor > fieldset { display: grid; gap: 12px; padding: 16px; border: 1px solid #dedede; border-radius: 8px; min-width: 0; }
+.landing-content-editor > fieldset > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.landing-content-editor textarea { min-height: 90px; }

@@ -29,6 +29,20 @@ const renderContent = (props = {}) => render(<MemoryRouter initialEntries={["/co
 
 describe("Course content edit mode", () => {
   beforeEach(() => { api.get.mockReset(); api.post.mockReset(); api.patch.mockReset(); loadMocks(); });
+  it("saves landing page content independently from LMS topics", async () => {
+    api.patch.mockResolvedValueOnce(response(lesson));
+    renderContent();
+    fireEvent.click(await screen.findByLabelText("Edit mode"));
+    fireEvent.click(screen.getByLabelText("Actions for Introduction"));
+    fireEvent.click(screen.getByLabelText("Edit Introduction"));
+    fireEvent.change(screen.getByLabelText("Lesson overview"), { target: { value: "Public lesson description" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Add landing page content" }));
+    fireEvent.change(screen.getByLabelText("Content title 1"), { target: { value: "Public syllabus heading" } });
+    fireEvent.change(screen.getByLabelText("Content description 1"), { target: { value: "Public syllabus description" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/api/v1/admin/lessons/lesson-1", expect.objectContaining({ landingPageContent: { overview: "Public lesson description", syllabus: [{ title: "Public syllabus heading", description: "Public syllabus description" }] } })));
+    expect(api.patch.mock.calls.some(([url]) => url.includes("/topics"))).toBe(false);
+  });
   it("uses the Course and Medium context from the route, never CourseTrack", async () => { renderContent(); expect(await screen.findByRole("heading", { name: "ICT — Sinhala" })).toBeInTheDocument(); expect(screen.getByText("A/L")).toBeInTheDocument(); expect(screen.queryByText("CourseTrack")).not.toBeInTheDocument(); });
   it("has a clean view mode with no authoring controls", async () => { renderContent(); expect(await screen.findByText("Introduction")).toBeInTheDocument(); expect(screen.getByText("Hardware")).toBeInTheDocument(); expect(screen.getByText("Premium")).toBeInTheDocument(); expect(screen.queryByText("+ Add lesson")).not.toBeInTheDocument(); expect(screen.queryByLabelText("Actions for Introduction")).not.toBeInTheDocument(); });
   it("shows nested creation controls only after enabling edit mode", async () => { renderContent(); fireEvent.click(await screen.findByLabelText("Edit mode")); expect(screen.getByText("+ Add lesson")).toBeInTheDocument(); expect(screen.getAllByText("+ Add topic")).not.toHaveLength(0); fireEvent.click(screen.getByText("+ Add activity or resource")); expect(screen.getByRole("dialog")).toBeInTheDocument(); expect(screen.getByRole("button", { name: /Label/ })).toBeInTheDocument(); });
