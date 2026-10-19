@@ -5,5 +5,6 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: process.env.VITE_PUBLIC_BASE || "/",
   plugins: [react()],
+  server: { port: 5174, strictPort: true },
   test: { environment: "jsdom", setupFiles: "./tests/setup.js" },
 });

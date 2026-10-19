@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../api/client.js';
+import { CourseTutorialSettings } from '../components/CourseTutorialSettings.jsx';
 
 const emptyCourse = { title: '', slug: '', academicLevelId: '', courseGroup: 'SCHOOL', description: '' };
 const emptyMedium = { courseId: '', mediumId: '', title: '', slug: '' };
@@ -55,6 +56,8 @@ export const CourseSetupPage = ({ user }) => {
   return <section className="courses-page">
     <header className="admin-page-heading"><div><p className="admin-kicker">Course administration</p><h2>Course setup</h2><p>Create courses and their language-specific learning paths.</p></div><Link to="/courses">Back to courses</Link></header>
     {error && <p className="admin-error" role="alert">{error}</p>}{notice && <p className="content-notice" role="status">{notice}</p>}
+    {permissions.includes('products.view') && <p><Link to="/products">Manage course lesson prices</Link> — set the price for each lesson’s full-access product.</p>}
+    {permissions.includes('courses.update') && courses.length > 0 && <section aria-label="Course tutorial images"><h3>Course tutorial images</h3>{courses.map((item) => <CourseTutorialSettings key={item.id} course={item} onSaved={load} />)}</section>}
     {permissions.includes('courses.create') && <form className="resource-form" onSubmit={(event) => submit(event, 'courses')}>
       <h3>Create course</h3>
       <label>Title<input name="title" required value={course.title} onChange={change(setCourse)} /></label>
