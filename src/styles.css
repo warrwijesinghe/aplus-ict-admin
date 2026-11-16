@@ -54,7 +54,7 @@ button {
   grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100vh;
 }
-aside {
+.admin-navigation {
   background: linear-gradient(170deg, #111 0%, #1c1c1c 72%, #300000 100%);
   color: #fff;
   display: flex;
@@ -75,8 +75,8 @@ aside {
   margin: 0 0 1.3rem;
   text-transform: uppercase;
 }
-aside a,
-aside button {
+.admin-navigation a,
+.admin-navigation button {
   border: 0;
   border-radius: 0.55rem;
   color: rgba(255, 255, 255, 0.88);
@@ -88,16 +88,16 @@ aside button {
     background 0.18s ease,
     color 0.18s ease;
 }
-aside a.active,
-aside a:hover {
+.admin-navigation a.active,
+.admin-navigation a:hover {
   background: rgba(187, 0, 0, 0.2);
   color: #fff;
 }
-aside button {
+.admin-navigation button {
   background: rgba(255, 255, 255, 0.08);
   margin-top: auto;
 }
-aside button:hover {
+.admin-navigation button:hover {
   background: var(--brand-red);
 }
 
@@ -382,7 +382,7 @@ td:first-child {
   .shell {
     grid-template-columns: 1fr;
   }
-  aside {
+  .admin-navigation {
     flex-direction: row;
     flex-wrap: wrap;
     padding: 1rem;
@@ -394,11 +394,11 @@ td:first-child {
   .admin-label {
     display: none;
   }
-  aside a,
-  aside button {
+  .admin-navigation a,
+  .admin-navigation button {
     margin: 0;
   }
-  aside button {
+  .admin-navigation button {
     margin-left: auto;
   }
   .shell > main {

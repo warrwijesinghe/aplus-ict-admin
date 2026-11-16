@@ -1,24 +1,64 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { AssignmentManagementPage, DirectPayPaymentsPage, DownloadableResourcesPage, EducatorWorkspacePage, EducatorsPage, GenericList, PaymentsPage, RolesPage } from "../pages/ManagementPages.jsx";
-import { ResourceLibraryPage } from "../pages/ResourceLibraryPage.jsx";
+import { AdminDashboard } from "../pages/AdminDashboard.jsx";
+import { OrdersPage } from "../pages/CommercePages.jsx";
 import { CourseContentPage, CoursesPage } from "../pages/CourseContentPage.jsx";
-import { QuestionBankPage } from "../pages/QuestionBankPage.jsx";
-import { QuizBuilderPage } from "../pages/QuizBuilderPage.jsx";
-import { GradebookPage } from "../pages/GradebookPage.jsx";
-import { StudentDetailPage, StudentsPage } from "../pages/StudentManagementPage.jsx";
-import { OrdersPage, ProductsPage } from "../pages/CommercePages.jsx";
-import { SmsMessagesPage } from "../pages/SmsMessagesPage.jsx";
 import { CourseSetupPage } from "../pages/CourseSetupPage.jsx";
-import { LegacyContentPage } from "../pages/LegacyContentPage.jsx";
+import { CourseCategoriesPage } from "../pages/CourseCategoriesPage.jsx";
+import { QuizBuilderPage } from "../pages/QuizBuilderPage.jsx";
+import { StudentDetailPage, StudentsPage } from "../pages/StudentManagementPage.jsx";
 
-const pages = [["Dashboard", "educator-workspace", "tracks.read", false], ["Courses", "courses", "tracks.read", false], ["Question Bank", "question-bank", "questions.read", false], ["Users", "educators", "educators.read", true], ["Resources", "resources", "resources.read", true], ["Public downloads", "downloadable-resources", "resources.read", true], ["Categories", "categories", "courses.read", true], ["Lessons", "lessons", "lessons.read", true], ["Topics", "topics", "topics.read", true], ["Learning content", "sections", "activities.read", true], ["Students", "students", "students.read", true], ["Products", "products", "products.view", true], ["Orders", "orders", "orders.view", true], ["Payments", "payments", "payments.read", true], ["SMS messages", "sms", "sms.read", true], ["Course assignments", "educator-assignments", "educators.assign", true], ["Roles", "roles", "roles.read", true]];
-const lightLogoSource = `${import.meta.env.BASE_URL}images/aplus-brand-on-dark.png`;
-const pageElement = (title, path, user) => path === "educator-workspace" ? <EducatorWorkspacePage /> : path === "courses" ? <CoursesPage /> : path === "question-bank" ? <QuestionBankPage /> : path === "products" ? <ProductsPage user={user} /> : path === "orders" ? <OrdersPage /> : path === "payments" ? <><PaymentsPage /><DirectPayPaymentsPage /></> : path === "sms" ? <SmsMessagesPage /> : path === "resources" ? <ResourceLibraryPage /> : path === "downloadable-resources" ? <DownloadableResourcesPage /> : path === "educators" ? <EducatorsPage /> : path === "educator-assignments" ? <AssignmentManagementPage /> : path === "roles" ? <RolesPage /> : path === "students" ? <StudentsPage /> : <GenericList path={path} title={title} />;
+const logoSource = `${import.meta.env.BASE_URL}images/aplus-brand-on-light.png`;
 
 export const AdminShell = ({ user }) => {
-  const isAdministrator = ["admin", "super_admin"].includes(user.role);
-  const visible = pages.filter(([, , permission, adminOnly]) => user.permissions?.includes(permission) && (!adminOnly || isAdministrator));
-  const fallback = visible[0]?.[1] || "login";
-  const legacyAllowed = isAdministrator && ["tracks.read", "lessons.read", "activities.read", "products.view"].every((permission) => user.permissions?.includes(permission));
-  return <div className="shell"><aside><img alt="A Plus ICT" className="admin-logo" src={lightLogoSource} /><p className="admin-label">{user.name || "Management"} · {user.role}</p>{visible.map(([name, path]) => <NavLink key={path} to={`/${path}`}>{name}</NavLink>)}{legacyAllowed && <NavLink to="/legacy-content">Legacy lesson editor</NavLink>}<button onClick={() => { localStorage.removeItem("aplus_admin_token"); location.assign(import.meta.env.BASE_URL); }}>Sign out</button></aside><main><Routes>{visible.map(([title, path]) => <Route element={pageElement(title, path, user)} key={path} path={`/${path}`} />)}{visible.some(([, path]) => path === 'courses') && <Route element={<CourseSetupPage user={user} />} path="/courses/setup" />}{legacyAllowed && <Route element={<LegacyContentPage />} path="/legacy-content" />}<Route element={<StudentDetailPage />} path="/students/:studentId" /><Route element={<CourseContentPage user={user} />} path="/courses/:courseTrackId/content" /><Route element={<QuizBuilderPage />} path="/courses/:courseTrackId/content/quiz/:activityId" /><Route element={<GradebookPage />} path="/courses/:courseTrackId/gradebook" /><Route path="/content-builder" element={<Navigate replace to="/courses" />} /><Route path="*" element={<Navigate to={`/${fallback}`} />} /></Routes></main></div>;
+  const canViewDashboard = ["admin", "super_admin"].includes(user.role);
+  const canReadCourses = canViewDashboard && user.permissions?.includes("tracks.read");
+  const canReadCategories = canReadCourses && user.permissions?.includes("courses.read");
+  const canReadStudents = canViewDashboard && user.permissions?.includes("students.read");
+  const canReadOrders = canViewDashboard && user.permissions?.includes("orders.view");
+  const signOut = () => {
+    localStorage.removeItem("aplus_admin_token");
+    location.assign(import.meta.env.BASE_URL);
+  };
+
+  return <div className={canViewDashboard ? "admin-navigation-layout" : undefined}>
+    {canViewDashboard && <aside className="admin-navigation">
+      <nav aria-label="Admin navigation">
+        <NavLink end to="/">Dashboard</NavLink>
+        {canReadCourses && <NavLink to="/courses">Courses</NavLink>}
+        {canReadStudents && <NavLink to="/students">Students</NavLink>}
+        {canReadOrders && <NavLink to="/orders">Orders</NavLink>}
+      </nav>
+    </aside>}
+    <main className="admin-overview">
+      <header className="admin-overview-header">
+        <img alt="A Plus ICT" className="login-logo" src={logoSource} />
+        <button onClick={signOut} type="button">Sign out</button>
+      </header>
+    <Routes>
+      <Route path="/" element={canViewDashboard ? <AdminDashboard /> : <>
+        <h1>Admin account</h1>
+        <p>Signed in as {user.name || user.email || user.role}.</p>
+      </>} />
+      {canReadCourses && <>
+        <Route path="/courses" element={<AdminDashboard section="courses" canReadCategories={canReadCategories} />} />
+        {canReadCategories && <Route path="/courses/categories" element={<CourseCategoriesPage user={user} />} />}
+        <Route path="/courses/list" element={<CoursesPage />} />
+        <Route path="/courses/setup" element={<CourseSetupPage user={user} />} />
+        <Route path="/courses/:courseTrackId/content" element={<CourseContentPage user={user} />} />
+        <Route path="/courses/:courseTrackId/lessons/:lessonId" element={<CourseContentPage user={user} />} />
+        <Route path="/courses/:courseTrackId/content/quiz/:activityId" element={<QuizBuilderPage />} />
+      </>}
+      {canReadStudents && <>
+        <Route path="/students" element={<AdminDashboard section="students" />} />
+        <Route path="/students/list" element={<StudentsPage />} />
+        <Route path="/students/:studentId" element={<StudentDetailPage />} />
+      </>}
+      {canReadOrders && <>
+        <Route path="/orders" element={<AdminDashboard section="sales" />} />
+        <Route path="/orders/list" element={<OrdersPage />} />
+      </>}
+      <Route path="*" element={<Navigate replace to="/" />} />
+    </Routes>
+    </main>
+  </div>;
 };

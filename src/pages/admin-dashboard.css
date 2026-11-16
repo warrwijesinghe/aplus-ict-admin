@@ -1,0 +1,31 @@
+.admin-overview { max-width: 1240px; margin: auto; padding: clamp(16px, 4vw, 48px); }
+.admin-overview-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+.admin-overview h1 { margin-bottom: 24px; }
+.admin-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.admin-metric { padding: 22px; border: 1px solid #e8dddd; border-radius: 16px; background: #fff; }
+.admin-metric h2 { margin: 0 0 18px; font-size: 1.15rem; }
+.admin-metric dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.admin-metric dl > div { padding: 12px; background: #faf4f4; border-radius: 10px; }
+.admin-metric dt { color: #654c50; font-size: .85rem; }
+.admin-metric dd { margin: 4px 0 0; font-size: clamp(1.3rem, 3vw, 1.85rem); font-weight: 700; overflow-wrap: anywhere; }
+.admin-section-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; margin-top: 24px; }
+.admin-action-card { display: grid; gap: 8px; color: #654c50; text-decoration: none; }
+.admin-action-card strong { display: flex; justify-content: space-between; color: #a7141c; }
+.admin-action-card:hover { border-color: #a7141c; background: #faf4f4; }
+.courses-home-actions > h2, .courses-home-statistics > h2 { font-size: 1.1rem; margin: 0 0 12px; }
+.courses-home-actions .admin-section-actions { margin-top: 0; }
+.courses-home-actions .admin-action-card:first-child { background: #faf4f4; border-color: #dcbec3; }
+.courses-home-statistics { margin-top: 28px; }
+.category-image-preview { display: block; width: min(100%, 240px); max-height: 150px; object-fit: contain; margin: 8px 0; }
+.admin-navigation-layout { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 100dvh; }
+.admin-navigation-layout .admin-overview { width: 100%; min-width: 0; margin: 0 auto; }
+.admin-navigation { padding: 24px 14px; background: #2a1115; }
+.admin-navigation nav { display: grid; gap: 6px; }
+.admin-navigation a { display: flex; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 8px; color: #fff; text-decoration: none; }
+.admin-navigation a:hover, .admin-navigation a.active { background: #6b3b40; }
+.admin-navigation a:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+@media (max-width: 680px) {
+  .admin-navigation-layout { grid-template-columns: minmax(0, 1fr); }
+  .admin-navigation { padding: 8px; }
+  .admin-navigation nav { display: flex; flex-wrap: wrap; }
+}

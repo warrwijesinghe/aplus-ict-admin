@@ -1,0 +1,63 @@
+.course-workspace { min-width: 0; }
+.course-grid-filters.resource-form { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); align-items: end; gap: .75rem; padding: 1rem; }
+.course-grid-filters button { min-height: 41px; }
+.course-grid-count { color: var(--ink-muted); font-size: .9rem; }
+.course-catalogue.course-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 255px), 1fr)); }
+.course-grid article { display: flex; flex-direction: column; gap: .65rem; min-width: 0; }
+.course-grid article h2 { font-size: 1.1rem; margin: 0; overflow-wrap: anywhere; }
+.course-grid dl { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin: 0 0 .4rem; }
+.course-grid dt { color: var(--ink-muted); font-size: .78rem; }
+.course-grid dd { margin: .2rem 0 0; }
+.course-grid footer { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; justify-content: space-between; margin-top: auto; }
+.course-grid footer a { display: inline-flex; align-items: center; min-height: 44px; }
+.course-workspace .content-header h1 { margin: .65rem 0; font-size: clamp(1.45rem, 3vw, 2rem); overflow-wrap: anywhere; }
+.workspace-tabs { display: flex; flex-wrap: wrap; gap: .25rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.workspace-tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: inherit; min-height: 44px; padding: .6rem .85rem; }
+.workspace-tabs button:hover, .workspace-tabs button[aria-current="page"] { color: #a7141c; border-bottom-color: #a7141c; }
+.workspace-course-layout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.workspace-index { position: sticky; top: 1rem; max-height: calc(100dvh - 2rem); overflow: auto; padding: .85rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--surface); color: var(--ink); }
+.workspace-index summary { font-weight: 700; cursor: pointer; }
+.workspace-index nav { display: grid; gap: .35rem; margin-top: .65rem; }
+.workspace-index button { display: block; width: 100%; text-align: left; color: inherit; background: transparent; border: 0; border-radius: .4rem; padding: .45rem .55rem; font: inherit; overflow-wrap: anywhere; min-height: 36px; }
+.workspace-index button:focus-visible { outline: 2px solid var(--brand-red); outline-offset: -2px; }
+.workspace-index button:hover { background: #fff2f2; }
+.workspace-index .workspace-index-topic { padding-left: 1.4rem; font-size: .85rem; }
+.workspace-course-main { min-width: 0; }
+.workspace-lesson-links { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.lesson-list-toolbar { display: flex; justify-content: flex-end; }
+.lesson-settings-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.lesson-settings-header .content-menu[open] { position: static; }
+.lesson-publication { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; max-width: 880px; padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--surface); }
+.lesson-publication button, .lesson-pricing-actions button { min-height: 44px; padding: .5rem .8rem; }
+.lesson-availability { max-width: 880px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #e7cf9d; border-radius: .75rem; background: #fff8e9; color: #49380f; }
+.lesson-availability p { margin: .35rem 0; }
+.lesson-price-form { display: grid; gap: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+.lesson-pricing-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.lesson-list-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--surface); }
+.lesson-list-row h2 { margin: .25rem 0 0; font-size: 1.1rem; overflow-wrap: anywhere; }
+.lesson-list-row .item-controls { flex-wrap: wrap; gap: .75rem; }
+.course-workspace .lesson-section > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; }
+.workspace-chevron { min-width: 38px; min-height: 38px; padding: 0; font-size: 1.3rem; }
+.course-settings.resource-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; max-width: 880px; box-shadow: none; }
+.course-settings h2 { margin: 0; }
+.course-settings p { margin: .5rem 0 0; color: var(--ink-muted); font-size: .9rem; }
+.course-settings fieldset { min-width: 0; margin: 0; padding: 1rem; border: 1px solid var(--border); border-radius: .65rem; }
+.course-settings legend { padding: 0 .4rem; font-weight: 700; }
+.course-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.course-settings label { font-size: .9rem; }
+.course-settings input, .course-settings select, .course-settings textarea { font: inherit; font-weight: 400; min-height: 44px; }
+.course-settings fieldset > label + .course-settings-grid { margin-top: 1rem; }
+.course-settings .course-settings-toggles label { display: flex; align-items: center; gap: .55rem; min-height: 44px; }
+.course-settings .course-settings-toggles input { padding: 0; width: 18px; min-height: 0; height: 18px; }
+.course-settings-actions { position: sticky; z-index: 2; bottom: 0; display: flex; flex-wrap: wrap; gap: .65rem; padding: .75rem 0 calc(.75rem + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--surface); }
+.course-settings-actions button { min-height: 44px; }
+.course-settings-actions .course-settings-save { background: #a7141c; border-color: #a7141c; color: white; }
+@media (max-width: 960px) {
+  .workspace-course-layout { grid-template-columns: minmax(0, 1fr); }
+  .workspace-index { position: static; max-height: 220px; }
+}
+@media (max-width: 560px) {
+  .course-settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .course-workspace .lesson-section > header { padding: .8rem; gap: .5rem; }
+  .course-workspace .lesson-section > header > .item-controls { grid-column: 2; }
+}

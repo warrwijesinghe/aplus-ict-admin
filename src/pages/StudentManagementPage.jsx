@@ -40,7 +40,7 @@ const date = (value) =>
       }).format(new Date(value))
     : "—";
 
-export const StudentsPage = () => {
+export const StudentsPage = ({ courseTrackId, lessonId, lessonTitle }) => {
   const [filters, setFilters] = useState({
     search: "",
     district: "",
@@ -56,12 +56,12 @@ export const StudentsPage = () => {
     try {
       setError("");
       setData(
-        unwrap(await api.get("/api/v1/admin/students", { params: filters })),
+        unwrap(await api.get("/api/v1/admin/students", { params: { ...filters, ...(courseTrackId && { courseTrackId }), ...(lessonId && { lessonId }) } })),
       );
     } catch (requestError) {
       setError(asError(requestError));
     }
-  }, [filters]);
+  }, [filters, courseTrackId, lessonId]);
   useEffect(() => {
     load();
   }, [load]);
@@ -76,13 +76,12 @@ export const StudentsPage = () => {
       <div className="admin-page-heading">
         <div>
           <p className="admin-kicker">Learner management</p>
-          <h2>Students</h2>
+          <h2>{lessonTitle ? `Participants · ${lessonTitle}` : courseTrackId ? "Enrolled participants" : "Students"}</h2>
           <p>
-            Search profiles and review only the information needed to support
-            learning.
+            {courseTrackId ? "Participants are drawn from active lesson enrolments." : "Search student profiles and review their learning details."}
           </p>
           <p className="admin-page-count">
-            {data.pagination.total ?? 0} registered student
+            {data.pagination.total ?? 0} {courseTrackId ? "enrolled" : "registered"} student
             {data.pagination.total === 1 ? "" : "s"}
           </p>
         </div>
@@ -133,7 +132,7 @@ export const StudentsPage = () => {
               <option value="incomplete">Incomplete</option>
             </select>
           </label>
-          <label>
+          {!courseTrackId && <label>
             Enrolment
             <select
               name="hasEnrolment"
@@ -144,7 +143,7 @@ export const StudentsPage = () => {
               <option value="true">Has active enrolment</option>
               <option value="false">No active enrolment</option>
             </select>
-          </label>
+          </label>}
         </div>
       </details>
       {error ? <p className="admin-error">{error}</p> : null}
@@ -157,8 +156,8 @@ export const StudentsPage = () => {
               <th>School / district</th>
               <th>Year / communication</th>
               <th>Profile</th>
-              <th>Enrolments</th>
-              <th>Last activity</th>
+              <th>{courseTrackId ? "Lesson enrolments" : "Enrolments"}</th>
+              <th>{courseTrackId ? "Latest lesson enrolment" : "Last activity"}</th>
             </tr>
           </thead>
           <tbody>
@@ -181,7 +180,7 @@ export const StudentsPage = () => {
                 </td>
                 <td>{student.profileStatus}</td>
                 <td>{student.activeEnrolmentCount}</td>
-                <td>{date(student.lastActivityAt)}</td>
+                <td>{date(courseTrackId ? student.lastLessonEnrolledAt : student.lastActivityAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -291,13 +290,13 @@ export const StudentDetailPage = () => {
     return (
       <section>
         <p className="admin-error">{error}</p>
-        <Link to="/students">Back to Students</Link>
+        <Link to="/students/list">Back to Students</Link>
       </section>
     );
   if (!student) return <section>Loading student…</section>;
   return (
     <section className="student-detail">
-      <Link to="/students">← Students</Link>
+      <Link to="/students/list">← Students</Link>
       <p className="admin-kicker">Student profile</p>
       <h2>{student.profile.fullName || student.email}</h2>
       <p>

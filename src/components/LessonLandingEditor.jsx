@@ -9,7 +9,8 @@ export const LessonLandingEditor = ({ value, onChange }) => {
     update("syllabus", next);
   };
   return <fieldset className="landing-content-editor"><legend>Lesson landing page</legend>
-    <p>This content appears on the public lesson page. It is separate from LMS topics and learning activities. Save changes to update the page.</p>
+    {value == null && <p>No custom landing page content has been saved for this lesson. The website uses its built-in copy where available.</p>}
+    <p>Use these fields to customize the public lesson page. To edit existing LMS topics and activities, open the Content tab.</p>
     {[
       ["heroDescription", "Hero description"], ["overview", "Lesson overview"],
       ["tutorialTitle", "Home delivery heading"], ["tutorialDescription", "Home delivery description"],

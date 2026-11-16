@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../api/client.js';
 import { CourseTutorialSettings } from '../components/CourseTutorialSettings.jsx';
+import { CourseDetailsEditor } from '../components/CourseDetailsEditor.jsx';
 
 const emptyCourse = { title: '', slug: '', academicLevelId: '', courseGroup: 'SCHOOL', description: '' };
 const emptyMedium = { courseId: '', mediumId: '', title: '', slug: '' };
@@ -13,6 +14,7 @@ export const CourseSetupPage = ({ user }) => {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(null);
   const permissions = user.permissions || [];
   const load = useCallback(async () => {
     setContext(unwrap(await api.get('/api/v1/admin/content-builder/context')));
@@ -53,16 +55,28 @@ export const CourseSetupPage = ({ user }) => {
     finally { setBusy(false); }
   };
   const courses = context?.courses || [];
+  const categories = context?.categories || [];
+  const manageCourse = async (item, values) => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (values) await api.patch(`/api/v1/admin/courses/${item.id}`, values);
+      else await api.delete(`/api/v1/admin/courses/${item.id}`);
+      setEditing(null);
+      await load();
+      setNotice(values ? 'Course saved.' : 'Course deleted.');
+    } catch (e) { setError(e.response?.data?.error?.message || 'Unable to update the course.'); }
+    finally { setBusy(false); }
+  };
   return <section className="courses-page">
-    <header className="admin-page-heading"><div><p className="admin-kicker">Course administration</p><h2>Course setup</h2><p>Create courses and their language-specific learning paths.</p></div><Link to="/courses">Back to courses</Link></header>
+    <header className="admin-page-heading"><div><p className="admin-kicker">Course administration</p><h2>Course setup</h2><p>Create courses and their language-specific learning paths.</p></div><Link to="/courses/list">Back to courses</Link></header>
     {error && <p className="admin-error" role="alert">{error}</p>}{notice && <p className="content-notice" role="status">{notice}</p>}
-    {permissions.includes('products.view') && <p><Link to="/products">Manage course lesson prices</Link> — set the price for each lesson’s full-access product.</p>}
     {permissions.includes('courses.update') && courses.length > 0 && <section aria-label="Course tutorial images"><h3>Course tutorial images</h3>{courses.map((item) => <CourseTutorialSettings key={item.id} course={item} onSaved={load} />)}</section>}
     {permissions.includes('courses.create') && <form className="resource-form" onSubmit={(event) => submit(event, 'courses')}>
       <h3>Create course</h3>
       <label>Title<input name="title" required value={course.title} onChange={change(setCourse)} /></label>
       <label>Slug<input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={course.slug} onChange={change(setCourse)} /></label>
       <label>Course category<select name="courseGroup" value={course.courseGroup} onChange={change(setCourse)}><option value="SCHOOL">School ICT (grades 6–13)</option><option value="DEGREE">Degree</option><option value="PROFESSIONAL">Professional Certifications</option><option value="SHORT_COURSES">Short Courses</option></select></label>
+      {categories.length > 0 && <label>Public category<select name="categoryId" value={course.categoryId || ''} onChange={change(setCourse)}><option value="">Use the default category</option>{categories.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}</select></label>}
       {!['DEGREE', 'PROFESSIONAL', 'SHORT_COURSES'].includes(course.courseGroup) && <label>Academic level<select name="academicLevelId" required value={course.academicLevelId} onChange={change(setCourse)}><option value="">Select academic level</option>{(context?.academicLevels || []).map((item) => <option key={item.id} value={item.id}>{item.nameEn || item.name || item.code}</option>)}</select></label>}
       <label>Description<textarea name="description" value={course.description} onChange={change(setCourse)} /></label>
       <button disabled={busy || !context} type="submit">Create draft course</button>
@@ -75,7 +89,12 @@ export const CourseSetupPage = ({ user }) => {
       <label>Slug<input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={medium.slug} onChange={change(setMedium)} /></label>
       <button disabled={busy || !context} type="submit">Create draft medium</button>
     </form>}
-    <h3>Courses</h3><div className="resource-table-wrap"><table><thead><tr><th>Course</th><th>Status</th><th>Publication</th></tr></thead><tbody>{courses.map((item) => <tr key={item.id}><td>{item.titleEn || item.title}</td><td>{item.status}</td><td>{permissions.includes('courses.update') && <button disabled={busy} onClick={() => setPublished('courses', item, item.status !== 'published')} type="button">{item.status === 'published' ? 'Return to draft' : 'Publish'}</button>}</td></tr>)}</tbody></table></div>
+    <h3>Courses</h3>
+    {editing && <CourseDetailsEditor key={editing.id} course={editing} categories={categories} user={user} busy={busy} onCancel={() => setEditing(null)} onSave={(values) => manageCourse(editing, values)} />}
+    <div className="resource-table-wrap"><table><thead><tr><th>Course</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead><tbody>{courses.map((item) => <tr key={item.id}><td>{item.titleEn || item.title}</td><td>{categories.find(({ id }) => id === item.categoryId)?.name || '—'}</td><td>{item.status}</td><td>
+      {permissions.includes('courses.update') && <><button disabled={busy} onClick={() => setEditing(item)} type="button">Edit</button> <button disabled={busy} onClick={() => setPublished('courses', item, item.status !== 'published')} type="button">{item.status === 'published' ? 'Return to draft' : 'Publish'}</button></>}
+      {permissions.includes('courses.archive') && <button disabled={busy} onClick={() => { if (window.confirm(`Delete ${item.titleEn || item.title}?`)) manageCourse(item); }} type="button">Delete</button>}
+    </td></tr>)}</tbody></table></div>
     <h3>Media</h3><p>Publish both the course and its medium to show it in the catalogue. Marking a medium as coming soon makes it unavailable for enrollment and learning, including for existing students.</p><div className="resource-table-wrap"><table><thead><tr><th>Medium</th><th>Publication</th><th>Availability</th><th>Actions</th></tr></thead><tbody>{(context?.media || []).map((item) => <tr key={item.id}><td>{item.Course?.titleEn || item.Course?.title} — {item.mediumLabel || item.title}</td><td>{item.status}</td><td>{item.availabilityStatus === 'inactive' ? 'Coming soon' : 'Active'}</td><td>{permissions.includes('tracks.update') && <><button disabled={busy} onClick={() => setPublished('tracks', item, item.status !== 'published')} type="button">{item.status === 'published' ? 'Return to draft' : 'Publish'}</button> <button disabled={busy} onClick={() => setAvailability(item)} type="button">{item.availabilityStatus === 'inactive' ? 'Set active' : 'Set coming soon'}</button></>} <Link to={`/courses/${item.id}/content`}>Open content</Link></td></tr>)}</tbody></table></div>
   </section>;
 };
