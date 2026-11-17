@@ -48,14 +48,17 @@
   top: var(--admin-header-height, 60px);
   height: calc(100dvh - var(--admin-header-height, 60px));
   padding: .65rem .55rem 1rem;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
   background: var(--canvas);
 }
-.workspace-index header { display: flex; align-items: center; gap: .5rem; min-height: 44px; margin-bottom: .45rem; font-size: .875rem; }
-.workspace-index nav { display: grid; grid-template-columns: minmax(0, 1fr); gap: .2rem; }
-.workspace-index-sections { padding: .2rem 0 .45rem .45rem; }
-.workspace-index-group { margin-top: .5rem; }
-.workspace-index nav button, .workspace-index nav a {
+.workspace-index header { display: flex; flex: none; align-items: center; gap: .5rem; min-height: 44px; margin-bottom: .45rem; font-size: .875rem; }
+.workspace-index nav { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.workspace-index-group + .workspace-index-group { margin-top: .5rem; }
+.workspace-index-subtopics { margin-inline-start: .85rem; padding-inline-start: .25rem; border-inline-start: 1px solid var(--border); }
+.workspace-index-subtopics .workspace-index-group + .workspace-index-group { margin-top: .15rem; }
+.workspace-index-section { display: grid; grid-template-columns: 34px minmax(0, 1fr); }
+.workspace-index nav button {
   display: flex;
   align-items: center;
   gap: .45rem;
@@ -72,11 +75,24 @@
   text-decoration: none;
 }
 .workspace-index nav svg { flex: none; width: 14px; }
+.workspace-index nav .workspace-index-chevron { justify-content: center; padding: 0; }
+.workspace-index-section button + button { padding-inline-start: .35rem; }
 .workspace-index nav span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-index nav .workspace-index-child { padding-inline-start: 2.05rem; font-weight: 400; }
-.workspace-index nav a:hover, .workspace-index nav button:hover { background: var(--brand-soft); }
-.workspace-index nav a[aria-current] { background: var(--brand-red); color: #fff; }
+.workspace-index nav button:hover { background: var(--brand-soft); }
 .workspace-index nav button[aria-current] { background: var(--brand-soft); color: var(--brand-red-dark); }
+.course-workspace .workspace-index-reopen {
+  position: sticky;
+  top: calc(var(--admin-header-height, 60px) + .45rem);
+  z-index: 3;
+  grid-area: 1 / 1;
+  justify-self: start;
+  align-self: start;
+  margin: .45rem 0 0 .5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.workspace-index-reopen + .workspace-course-main { grid-area: 1 / 1; }
 .workspace-course-main { width: 100%; max-width: 880px; min-width: 0; margin-inline: auto; padding: 2.8rem clamp(.85rem, 2.5vw, 2rem); }
 .course-workspace .content-header { align-items: flex-start; gap: .5rem; margin-bottom: .35rem; padding-bottom: 0; border: 0; }
 .course-workspace .content-header nav { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; color: var(--ink-muted); }
@@ -113,6 +129,10 @@
 .course-overview .workspace-course-main { max-width: 1240px; }
 .lesson-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 1rem; }
 .lesson-card-grid + .workspace-insert { margin-top: 1rem; }
+.workspace-archived { margin-top: 1rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: .75rem; }
+.workspace-archived summary { cursor: pointer; font-weight: 650; }
+.workspace-archived ul { padding: 0; margin: .6rem 0 0; list-style: none; }
+.workspace-archived li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; padding: .4rem 0; border-top: 1px solid var(--border); }
 .lesson-card { position: relative; display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--border); border-radius: .9rem; background: var(--surface); }
 .lesson-card:hover, .lesson-card:focus-within { border-color: var(--brand-red); }
 .lesson-card-link { display: block; border-radius: .9rem .9rem 0 0; }
@@ -145,6 +165,9 @@
 }
 .workspace-title, .workspace-rename { display: flex; align-items: center; gap: .6rem; min-width: 0; }
 .workspace-section h2 { margin: 0; font-size: clamp(1.05rem, 2vw, 1.35rem); font-weight: 650; overflow-wrap: anywhere; }
+.workspace-subtopics { display: grid; gap: .75rem; margin-top: .8rem; }
+.workspace-subtopic { border-radius: .65rem; }
+.workspace-subtopic :is(h3, h4, h5, h6) { margin: 0; font-size: 1rem; font-weight: 650; overflow-wrap: anywhere; }
 .course-workspace .workspace-chevron, .workspace-pencil, .workspace-icon-button, .workspace-text-button {
   display: inline-grid;
   place-items: center;
@@ -191,6 +214,9 @@
   text-transform: none;
 }
 .workspace-insert { display: flex; align-items: center; gap: .7rem; margin: .3rem 0; }
+.workspace-topic-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
+.workspace-topic-actions .workspace-insert { flex: 1 1 12rem; }
+.topic-import-instructions { margin: 0; }
 .workspace-section-body .workspace-insert { margin-top: .75rem; }
 .workspace-insert::before, .workspace-insert::after { content: ""; flex: 1; border-top: 2px dashed var(--border); }
 .workspace-insert button { display: flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem; border: 0; background: transparent; color: var(--brand-red); font-size: .875rem; }
@@ -236,6 +262,8 @@
 @media (max-width: 690px) {
   .course-content.course-workspace { grid-template-columns: minmax(0, 1fr); }
   .workspace-index { position: static; height: auto; max-height: 225px; }
+  .course-workspace .workspace-index-reopen { top: .45rem; grid-area: auto; }
+  .workspace-index-reopen + .workspace-course-main { grid-area: auto; }
   .workspace-course-main { padding-block: 1.25rem; }
   .course-workspace .course-outline { gap: 1rem; }
 }

@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock("../src/api/client.js", () => ({ api, apiOrigin: (url) => url.replace(/\/api\/?$/, ""), unwrap: (response) => response.data.data }));
 import { AdminShell } from "../src/layouts/AdminShell.jsx";
 import { CourseContentPage } from "../src/pages/CourseContentPage.jsx";
@@ -29,7 +29,51 @@ const loadMocks = () => api.get.mockImplementation((url) => {
 const renderContent = (props = {}, suffix = "/lessons/lesson-1") => render(<MemoryRouter initialEntries={[`/courses/track-1${suffix || "/content"}`]}><Routes><Route element={<CourseContentPage user={{ ...user, ...props }} />} path="/courses/:courseTrackId/content" /><Route element={<CourseContentPage user={{ ...user, ...props }} />} path="/courses/:courseTrackId/lessons/:lessonId" /></Routes></MemoryRouter>);
 
 describe("Course content edit mode", () => {
-  beforeEach(() => { api.get.mockReset(); api.post.mockReset(); api.patch.mockReset(); loadMocks(); });
+  beforeEach(() => { api.get.mockReset(); api.post.mockReset(); api.patch.mockReset(); api.delete.mockReset(); loadMocks(); });
+  it.each([
+    ["topics", { ...topic, status: "archived" }],
+    ["activities", { ...activity, status: "archived" }],
+  ])("confirms permanent deletion of archived %s and refreshes the lesson", async (path, item) => {
+    const defaults = api.get.getMockImplementation();
+    let deleted = false;
+    api.get.mockImplementation((url) => url.endsWith(`/${path}`)
+      ? Promise.resolve(response(deleted ? [] : [item]))
+      : defaults(url));
+    api.delete.mockImplementationOnce(async () => { deleted = true; });
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    try {
+      renderContent({ permissions: [...user.permissions, "activities.publish"] });
+      fireEvent.click(await screen.findByLabelText("Edit mode"));
+      fireEvent.click(screen.getByText("Archived topics and activities (1)"));
+      const button = screen.getByRole("button", { name: `Delete ${item.title} permanently` });
+      fireEvent.click(button);
+      expect(api.delete).not.toHaveBeenCalled();
+      fireEvent.click(button);
+      await waitFor(() => expect(api.delete).toHaveBeenCalledWith(`/api/v1/admin/${path}/${item.id}`));
+      await waitFor(() => expect(screen.queryByText("Archived topics and activities (1)")).not.toBeInTheDocument());
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+  it("restores an archived lesson to the card list even when it has no topics", async () => {
+    const defaults = api.get.getMockImplementation();
+    let status = "archived";
+    api.get.mockImplementation((url) => {
+      if (url.endsWith("/lessons")) return Promise.resolve(response([{ ...lesson, status }, secondLesson]));
+      if (url.endsWith("/topics")) return Promise.resolve(response([]));
+      return defaults(url);
+    });
+    api.post.mockImplementationOnce(async () => {
+      status = "draft";
+      return response({ ...lesson, status });
+    });
+    renderContent({ permissions: [...user.permissions, "lessons.publish"] }, "");
+    fireEvent.click(await screen.findByText("Archived lessons (1)"));
+    expect(screen.queryByRole("link", { name: "Open Introduction" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Restore Introduction as draft" }));
+    expect(await screen.findByRole("link", { name: "Open Introduction" })).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith("/api/v1/admin/lessons/lesson-1/restore");
+  });
   it("shows lesson cards with lesson or course covers and opens the existing lesson editor", async () => {
     renderContent({}, "");
     const firstLesson = await screen.findByRole("link", { name: "Open Introduction" });
@@ -38,6 +82,8 @@ describe("Course content edit mode", () => {
       .toHaveAttribute("src", expect.stringContaining("/resources/course-cover/content"));
     fireEvent.error(firstLesson.querySelector("img"));
     expect(firstLesson.querySelector("img")).toHaveAttribute("src", expect.stringContaining("/resources/course-cover/content"));
+    fireEvent.error(firstLesson.querySelector("img"));
+    expect(firstLesson.querySelector("img")).toHaveAttribute("src", "/images/learning-places/student-guide-learning.webp");
     expect(screen.queryByText("Premium")).not.toBeInTheDocument();
     fireEvent.click(firstLesson);
     expect(screen.getByRole("heading", { name: "Hardware" })).toBeInTheDocument();
@@ -58,7 +104,7 @@ describe("Course content edit mode", () => {
     </MemoryRouter>);
     fireEvent.click(await screen.findByLabelText("Edit mode"));
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    expect(screen.getByRole("link", { name: "Introduction" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Introduction", level: 1 })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Content" }));
     expect(screen.getByLabelText("Edit mode")).toBeChecked();
     fireEvent.click(screen.getByLabelText("Actions for Hardware quiz"));
@@ -66,9 +112,77 @@ describe("Course content edit mode", () => {
     fireEvent.click(await screen.findByRole("link", { name: "Back to lesson" }));
     expect(await screen.findByRole("heading", { name: "Introduction", level: 1 })).toBeInTheDocument();
     expect(screen.getByLabelText("Edit mode")).toBeChecked();
-    fireEvent.click(screen.getByRole("link", { name: "Networks" }));
+    expect(screen.getByRole("navigation", { name: "Lesson outline" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Networks" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "All courses" })).toHaveAttribute("href", "/courses/list");
+    fireEvent.click(screen.getByRole("link", { name: "All lessons" }));
+    fireEvent.click(screen.getByRole("link", { name: "Open Networks" }));
     expect(screen.getByRole("heading", { name: "Networks", level: 1 })).toBeInTheDocument();
     expect(screen.getByLabelText("Edit mode")).toBeChecked();
+  });
+  it("collapses and reopens topics and the lesson outline", async () => {
+    renderContent();
+    const outline = within(await screen.findByRole("navigation", { name: "Lesson outline" }));
+    expect(outline.getByRole("button", { name: "Watch" })).toBeVisible();
+    fireEvent.click(outline.getByRole("button", { name: "Collapse Hardware in lesson outline" }));
+    expect(outline.queryByRole("button", { name: "Watch" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Watch" })).not.toBeInTheDocument();
+    fireEvent.click(outline.getByRole("button", { name: "Expand Hardware in lesson outline" }));
+    expect(outline.getByRole("button", { name: "Watch" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Close lesson outline" }));
+    expect(screen.queryByRole("navigation", { name: "Lesson outline" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open lesson outline" }));
+    expect(screen.getByRole("navigation", { name: "Lesson outline" })).toBeVisible();
+  });
+  it("groups numbered topics under their parent in the editor and outline", async () => {
+    const defaults = api.get.getMockImplementation();
+    const numberedTopics = ["1 Foundations", "1.1 Data", "1.1.1 Formats", "2 Applications", "3.1 Standalone"].map(
+      (title, index) => ({ ...topic, id: `numbered-${index}`, title, sortOrder: index }),
+    );
+    api.get.mockImplementation((url) => url.endsWith("/topics") ? Promise.resolve(response(numberedTopics)) : defaults(url));
+    const { container } = renderContent();
+    await screen.findByRole("heading", { name: "1 Foundations" });
+    const parent = within(container.querySelector("#workspace-numbered-0"));
+    expect(parent.getByRole("heading", { name: "1.1 Data", level: 3 })).toBeVisible();
+    expect(parent.getByRole("heading", { name: "1.1.1 Formats", level: 4 })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "3.1 Standalone", level: 2 })).toBeVisible();
+    const outline = within(screen.getByRole("navigation", { name: "Lesson outline" }));
+    fireEvent.click(outline.getByRole("button", { name: "Collapse 1 Foundations in lesson outline" }));
+    expect(outline.queryByRole("button", { name: "1.1 Data" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "1.1 Data" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2 Applications" })).toBeVisible();
+  });
+  it("creates a subtopic with the next number under its selected parent", async () => {
+    const defaults = api.get.getMockImplementation();
+    const parent = { ...topic, id: "parent", title: "1 Foundations" };
+    const child = { ...topic, id: "child", title: "1.1 Existing topic", sortOrder: 2 };
+    const saved = { ...topic, id: "saved", title: "1.2 New topic", sortOrder: 3, status: "draft" };
+    const rows = [parent, child];
+    api.get.mockImplementation((url) => url.endsWith("/topics") ? Promise.resolve(response(rows)) : defaults(url));
+    api.post.mockImplementationOnce(async () => { rows.push(saved); return response(saved); });
+    const { container } = renderContent({}, "/lessons/lesson-1?edit=1");
+    fireEvent.click(await screen.findByRole("button", { name: "Add subtopic to 1 Foundations" }));
+    const form = within(screen.getByRole("dialog", { name: "Add subtopic 1.2" }));
+    fireEvent.change(form.getByLabelText("Title"), { target: { value: "New topic" } });
+    fireEvent.click(form.getByRole("button", { name: "Save changes" }));
+    expect(await within(container.querySelector("#workspace-parent")).findByRole("heading", { name: "1.2 New topic", level: 3 })).toBeVisible();
+    expect(api.post).toHaveBeenCalledWith("/api/v1/admin/topics", expect.objectContaining({ lessonId: lesson.id, title: "1.2 New topic", status: "draft" }));
+  });
+  it("uploads the topic CSV to the selected lesson and reports the result", async () => {
+    api.post.mockResolvedValueOnce(response({ imported: 1, skipped: 0 }));
+    renderContent({}, "/lessons/lesson-1?edit=1");
+    fireEvent.click(await screen.findByRole("button", { name: "Import topics" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Import lesson topics" }));
+    expect(dialog.getByRole("link", { name: "Download CSV template" })).toHaveAttribute("download", "lesson-topics-template.csv");
+    const contents = "title\nNetworking";
+    const file = new File([contents], "topics.csv");
+    file.arrayBuffer = async () => new TextEncoder().encode(contents).buffer;
+    fireEvent.change(dialog.getByLabelText("Topic list file"), { target: { files: [file] } });
+    const submit = dialog.getByRole("button", { name: "Import topics" });
+    expect(submit).toBeEnabled();
+    fireEvent.submit(submit.form);
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/api/v1/admin/lessons/lesson-1/topics/import", { text: contents }));
+    expect(await screen.findByText("Added 1 topic as a draft.")).toBeInTheDocument();
   });
   it("creates a lesson only when the Add lesson form is saved", async () => {
     api.post.mockResolvedValueOnce(response({ ...lesson, id: "lesson-3", title: "New lesson title" }));

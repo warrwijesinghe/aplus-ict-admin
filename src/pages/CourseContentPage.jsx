@@ -12,6 +12,27 @@ import "./course-workspace.css";
 
 const nameOf = (item) => item?.title || item?.titleEn || item?.name || "Untitled";
 const byOrder = (items) => [...items].sort((a, b) => a.sortOrder - b.sortOrder);
+const topicNumber = (topic) => nameOf(topic).match(/^(\d+(?:\.\d+)*)(?:[.)])?\s+\S/)?.[1];
+const groupTopics = (topics) => {
+  const nodes = topics.map((topic) => ({ topic, number: topicNumber(topic), children: [] }));
+  const numbered = new Map();
+  for (const node of nodes) {
+    if (node.number) numbered.set(node.number, numbered.has(node.number) ? null : node);
+  }
+  const roots = [];
+  const parents = new Map();
+  for (const node of nodes) {
+    const parentNumbers = node.number?.split(".") || [];
+    let parent;
+    while (parentNumbers.length > 1 && !parent) {
+      parentNumbers.pop();
+      parent = numbered.get(parentNumbers.join("."));
+    }
+    parents.set(node.topic.id, parent?.topic.id);
+    (parent?.children || roots).push(node);
+  }
+  return { roots, parents };
+};
 const resourceTypes = ["image", "pdf", "file", "download"];
 const icons = { label: "¶", page: "▤", rich_text: "T", video: "▶", image: "▧", pdf: "PDF", file: "▤", download: "↓", external_link: "↗", embed: "<>", practical_activity: "✓", assignment: "□", quiz: "?" };
 
@@ -31,13 +52,23 @@ const AddContent = ({ label, onClick, disabled }) => <div className="workspace-i
   <button type="button" disabled={disabled} onClick={onClick}><span aria-hidden="true">+</span> {label}</button>
 </div>;
 
+// Match the syllabus covers used by the student site.
+const syllabusCovers = [
+  "student-guide-learning", "practical-learning", "lesson-tablet-headphones",
+  "lesson-laptop-focus", "lesson-campus-call", "lesson-headset-laptop",
+  "lesson-study-notes", "lesson-webinar-notes", "lesson-focused-study", "lesson-cafe-learning",
+];
+
 const LessonCardCover = ({ imageIds, lessonNumber }) => {
   const [failed, setFailed] = useState([]);
-  const current = imageIds.find((id) => !failed.includes(id));
   const origin = apiOrigin(import.meta.env.VITE_API_URL || "http://localhost:4000");
+  const coverIndex = Math.max(0, Math.trunc(Number(lessonNumber) || 1) - 1) % syllabusCovers.length;
+  const defaultCover = `${import.meta.env.BASE_URL}images/learning-places/${syllabusCovers[coverIndex]}.webp`;
+  const candidates = [...imageIds.map((id) => `${origin}/api/v1/resources/${encodeURIComponent(id)}/content`), defaultCover];
+  const current = candidates.find((url) => !failed.includes(url));
   return <div className="lesson-card-cover" aria-hidden="true">
     {current
-      ? <img key={current} src={`${origin}/api/v1/resources/${encodeURIComponent(current)}/content`} alt=""
+      ? <img key={current} src={current} alt=""
         loading="lazy" onError={() => setFailed((previous) => [...previous, current])} />
       : <ActivityIcon type="page" />}
     {lessonNumber != null && <span className="lesson-card-number">Lesson {lessonNumber}</span>}
@@ -148,6 +179,7 @@ export const CourseContentPage = ({ user, headerActions }) => {
   }, [lessonId]);
   const [collapsed, setCollapsed] = useState({});
   const [indexClosed, setIndexClosed] = useState(false);
+  const [showTopicImport, setShowTopicImport] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [context, setContext] = useState(null); const [lessons, setLessons] = useState([]); const [topics, setTopics] = useState([]); const [activities, setActivities] = useState([]); const [types, setTypes] = useState([]);
   const [editor, setEditor] = useState(null); const [chooserTopic, setChooserTopic] = useState(null); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false);
@@ -172,9 +204,9 @@ export const CourseContentPage = ({ user, headerActions }) => {
   const track = context?.media?.find((item) => item.id === courseTrackId); const course = context?.courses?.find((item) => item.id === track?.courseId); const level = context?.academicLevels?.find((item) => item.id === course?.academicLevelId);
   const courseLessons = useMemo(() => byOrder(lessons.filter((item) => item.trackId === courseTrackId && item.status !== "archived")), [lessons, courseTrackId]);
   const children = (items, field, id) => byOrder(items.filter((item) => item[field] === id && item.status !== "archived"));
-  const startEditor = (kind, data, isNew = false) => {
+  const startEditor = (kind, data, isNew = false, topicPrefix = "") => {
     setError("");
-    setEditor({ kind, isNew, data: { ...data, configText: JSON.stringify(data.config || {}, null, 2) } });
+    setEditor({ kind, isNew, topicPrefix, data: { ...data, configText: JSON.stringify(data.config || {}, null, 2) } });
   };
   const addLesson = () => {
     const trackLessons = lessons.filter((lesson) => lesson.trackId === courseTrackId);
@@ -185,9 +217,14 @@ export const CourseContentPage = ({ user, headerActions }) => {
     for (let suffix = 2; trackLessons.some((lesson) => lesson.slug === slug); suffix++) slug = `${baseSlug}-${suffix}`;
     startEditor("lesson", { trackId: courseTrackId, title: "", slug, lessonNumber, sortOrder, summary: "", status: "draft" }, true);
   };
-  const addTopic = () => {
+  const addTopic = (parent) => {
     const sortOrder = Math.max(0, ...topics.filter((topic) => topic.lessonId === lessonId).map((topic) => Number(topic.sortOrder) || 0)) + 1;
-    startEditor("topic", { lessonId, title: "", sortOrder, status: "draft" }, true);
+    const prefix = parent && topicNumber(parent);
+    const childNumbers = prefix ? lessonTopics.map(topicNumber)
+      .filter((number) => number?.startsWith(`${prefix}.`))
+      .map((number) => Number(number.slice(prefix.length + 1).split(".")[0])) : [];
+    const topicPrefix = prefix ? `${prefix}.${Math.max(0, ...childNumbers) + 1}` : "";
+    startEditor("topic", { lessonId, title: "", sortOrder, status: "draft" }, true, topicPrefix);
   };
   const addActivity = (type) => {
     const sortOrder = Math.max(0, ...activities.filter((activity) => activity.topicId === chooserTopic.id).map((activity) => Number(activity.sortOrder) || 0)) + 1;
@@ -198,16 +235,19 @@ export const CourseContentPage = ({ user, headerActions }) => {
     }, true);
     setChooserTopic(null);
   };
-  const deleteLesson = async (lesson) => {
-    if (!window.confirm(`Permanently delete ${nameOf(lesson)}?`)) return;
+  const deleteContent = async (kind, item) => {
+    const linkedNotice = kind === "topic" ? " Its subtopics will also be deleted."
+      : kind === "activity" && item.type === "quiz" ? " The linked quiz will also be deleted." : "";
+    if (busy || !window.confirm(`Permanently delete ${nameOf(item)}? This cannot be undone.${linkedNotice}`)) return;
+    const path = kind === "activity" ? "activities" : `${kind}s`;
     setBusy(true); setError(""); setNotice("");
     try {
-      await api.delete(`/api/v1/admin/lessons/${lesson.id}`);
-      setNotice("Lesson deleted.");
-      navigate(coursePath);
+      await api.delete(`/api/v1/admin/${path}/${item.id}`);
+      setNotice(kind === "lesson" ? "Lesson deleted." : `${nameOf(item)} permanently deleted.`);
+      if (kind === "lesson") navigate(coursePath);
       await load();
     } catch (requestError) {
-      setError(requestError.response?.data?.error?.message || "Unable to delete the lesson.");
+      setError(requestError.response?.data?.error?.message || `Unable to delete the ${kind}.`);
     } finally { setBusy(false); }
   };
   const save = async () => {
@@ -219,6 +259,7 @@ export const CourseContentPage = ({ user, headerActions }) => {
       const { configText, ...data } = editor.data;
       data.title = data.title.trim();
       if (!data.title) throw new Error("Enter a title.");
+      if (editor.topicPrefix) data.title = `${editor.topicPrefix} ${data.title}`;
       const path = editor.kind === "activity" ? "activities" : `${editor.kind}s`;
       if (editor.kind === "activity") {
         if (data.id) delete data.status;
@@ -257,8 +298,46 @@ export const CourseContentPage = ({ user, headerActions }) => {
       setError(requestError.response?.data?.error?.message || "Title was not updated.");
     }
   };
-  const action = async (kind, item, operation) => { if (operation === "archive" && !window.confirm(`Archive ${nameOf(item)}?`)) return; try { const path = kind === "activity" ? "activities" : `${kind}s`; if (operation === "duplicate") await api.post(`/api/v1/admin/${path}/${item.id}/duplicate`, kind === "topic" ? { includeActivities: true } : {}); else await api.post(`/api/v1/admin/${path}/${item.id}/${operation}`); setNotice(`${nameOf(item)} ${operation === "duplicate" ? "duplicated" : `${operation}d`}.`); await load(); } catch (requestError) { setError(requestError.response?.data?.error?.message || `Unable to ${operation}.`); } };
-  const move = async (kind, parentId, item, direction) => { const source = kind === "lesson" ? courseLessons : kind === "topic" ? children(topics, "lessonId", parentId) : children(activities, "topicId", parentId); const index = source.findIndex((entry) => entry.id === item.id); if (index + direction < 0 || index + direction >= source.length) return; const order = [...source]; [order[index], order[index + direction]] = [order[index + direction], order[index]]; const endpoint = kind === "lesson" ? `/api/v1/admin/tracks/${courseTrackId}/lessons/reorder` : kind === "topic" ? `/api/v1/admin/lessons/${parentId}/topics/reorder` : `/api/v1/admin/topics/${parentId}/activities/reorder`; try { await api.patch(endpoint, { orderedIds: order.map((entry) => entry.id) }); await load(); } catch (requestError) { setError(requestError.response?.data?.error?.message || "Unable to reorder. Saved order was restored."); await load(); } };
+  const action = async (kind, item, operation) => {
+    if (busy || (operation === "archive" && !window.confirm(`Archive this ${kind}: ${nameOf(item)}?`))) return;
+    const path = kind === "activity" ? "activities" : `${kind}s`;
+    setBusy(true);
+    setError("");
+    try {
+      if (operation === "duplicate") await api.post(`/api/v1/admin/${path}/${item.id}/duplicate`, kind === "topic" ? { includeActivities: true } : {});
+      else await api.post(`/api/v1/admin/${path}/${item.id}/${operation}`);
+      if (operation === "archive" && kind === "lesson" && item.id === lessonId) navigate(coursePath);
+      setNotice(operation === "restore" ? `${nameOf(item)} restored as a draft.` : `${nameOf(item)} ${operation === "duplicate" ? "duplicated" : `${operation}d`}.`);
+      await load();
+    } catch (requestError) {
+      setError(requestError.response?.data?.error?.message || `Unable to ${operation}.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const move = async (kind, parentId, item, direction) => {
+    const source = kind === "lesson" ? courseLessons : kind === "topic"
+      ? children(topics, "lessonId", parentId) : children(activities, "topicId", parentId);
+    const siblings = kind === "topic"
+      ? source.filter((entry) => topicParents.get(entry.id) === topicParents.get(item.id))
+      : source;
+    const neighbor = siblings[siblings.findIndex((entry) => entry.id === item.id) + direction];
+    if (!neighbor) return;
+    const index = source.findIndex((entry) => entry.id === item.id);
+    const next = source.findIndex((entry) => entry.id === neighbor.id);
+    const order = [...source];
+    [order[index], order[next]] = [order[next], order[index]];
+    const endpoint = kind === "lesson" ? `/api/v1/admin/tracks/${courseTrackId}/lessons/reorder`
+      : kind === "topic" ? `/api/v1/admin/lessons/${parentId}/topics/reorder`
+      : `/api/v1/admin/topics/${parentId}/activities/reorder`;
+    try {
+      await api.patch(endpoint, { orderedIds: order.map((entry) => entry.id) });
+      await load();
+    } catch (requestError) {
+      setError(requestError.response?.data?.error?.message || "Unable to reorder. Saved order was restored.");
+      await load();
+    }
+  };
   if (context && !track) return <section><p className="admin-error">You are not assigned to this Medium.</p><button onClick={() => navigate("/courses")} type="button">Back to courses</button></section>;
   if (!context && error) return <p role="alert" className="admin-error">{error} <button onClick={load} type="button">Retry</button></p>;
   if (!context) return <p className="resource-empty">Loading course content…</p>;
@@ -292,7 +371,9 @@ export const CourseContentPage = ({ user, headerActions }) => {
         {canPublish && <>
           {(!quiz || item.status === "published") && <button aria-label={`${publicationAction} ${nameOf(item)}`} onClick={() => action(kind, item, publicationAction.toLowerCase())} type="button">{publicationAction}</button>}
           <button aria-label={`Archive ${nameOf(item)}`} className="danger" onClick={() => action(kind, item, "archive")} type="button">Archive</button>
-          {kind === "lesson" && item.status === "draft" && <button className="danger" disabled={busy} onClick={() => deleteLesson(item)} type="button">Delete draft</button>}
+          {kind === "lesson" && item.status === "draft" && <button className="danger" disabled={busy} onClick={() => deleteContent(kind, item)} type="button">Delete draft</button>}
+          {kind !== "lesson" && item.status !== "published" && <button aria-label={`Delete ${nameOf(item)} permanently`}
+            className="danger" disabled={busy} onClick={() => deleteContent(kind, item)} type="button">Delete permanently</button>}
         </>}
       </div>
     </details>;
@@ -300,6 +381,7 @@ export const CourseContentPage = ({ user, headerActions }) => {
   const titleFor = (kind, item, Heading) => editMode && allowed(kind, "update")
     ? <InlineTitle key={item.id} item={item} Heading={Heading} onSave={(title) => quickTitle(kind, item, title)} />
     : <Heading>{nameOf(item)}</Heading>;
+  const archivedLessons = byOrder(lessons.filter((item) => item.trackId === courseTrackId && item.status === "archived"));
   const selectedLesson = courseLessons.find(({ id }) => id === lessonId);
   const quizzesOnly = !editMode && Number(selectedLesson?.lessonNumber) === 7 &&
     ["al-ict-english", "al-ict-sinhala"].includes(track?.slug);
@@ -325,7 +407,14 @@ export const CourseContentPage = ({ user, headerActions }) => {
   ].filter(([, , allowed]) => allowed);
   const tab = tabs.find(([value]) => value === search.get("tab"))?.[0] || "course";
   const lessonTopics = children(topics, "lessonId", lessonId);
+  const { roots: topicTree, parents: topicParents } = groupTopics(lessonTopics);
   const generalActivities = byOrder(outlineActivities.filter((activity) => activity.lessonId === lessonId && !activity.topicId && activity.status !== "archived"));
+  const archivedContent = [
+    ...topics.filter((topic) => topic.lessonId === lessonId && topic.status === "archived" && allowed("topic", "publish"))
+      .map((item) => ({ kind: "topic", item })),
+    ...activities.filter((activity) => activity.lessonId === lessonId && activity.status === "archived" && allowed("activity", "publish"))
+      .map((item) => ({ kind: "activity", item })),
+  ];
   const generalKey = `general-${lessonId}`;
   const sectionKeys = [generalKey, ...lessonTopics.map(({ id }) => id)];
   const allCollapsed = sectionKeys.every((id) => collapsed[id]);
@@ -339,8 +428,24 @@ export const CourseContentPage = ({ user, headerActions }) => {
     type="button" key={targetId} className={nested ? "workspace-index-child" : undefined}
     aria-current={(selectedIndex || generalKey) === targetId ? "location" : undefined}
     onClick={() => jumpTo(sectionId, targetId)} title={label}>
-    {!nested && <Chevron expanded={!collapsed[sectionId]} />}<span>{label}</span>
+    <span>{label}</span>
   </button>;
+  const indexSection = (id, label, rows, subsections = []) => <div className="workspace-index-group" key={id}>
+    <div className="workspace-index-section">
+      <button className="workspace-index-chevron" type="button"
+        aria-label={`${collapsed[id] ? "Expand" : "Collapse"} ${label} in lesson outline`}
+        aria-expanded={!collapsed[id]} aria-controls={`outline-${id}`} onClick={() => toggleSection(id)}>
+        <Chevron expanded={!collapsed[id]} />
+      </button>
+      {indexButton(id, id, label)}
+    </div>
+    <div id={`outline-${id}`} hidden={collapsed[id]}>
+      {rows.map((activity) => indexButton(id, activity.id, nameOf(activity), true))}
+      {subsections.length > 0 && <div className="workspace-index-subtopics">{subsections.map(indexTopic)}</div>}
+    </div>
+  </div>;
+  const indexTopic = ({ topic, children: subsections }) =>
+    indexSection(topic.id, nameOf(topic), children(outlineActivities, "topicId", topic.id), subsections);
   const activityRows = (rows, topicId) => rows.length > 0 && <div className="activity-list">
     {rows.map((activity) => <article className="activity-row" id={`workspace-${activity.id}`} key={activity.id}>
       <ActivityIcon type={activity.type} />
@@ -355,6 +460,31 @@ export const CourseContentPage = ({ user, headerActions }) => {
       </div>
     </article>)}
   </div>;
+  const topicSection = ({ topic, children: subsections }, depth = 0) => <section
+    className={depth ? "workspace-section workspace-subtopic" : "workspace-section"} id={`workspace-${topic.id}`} key={topic.id}>
+    <header>
+      <button className="workspace-chevron" type="button" aria-expanded={!collapsed[topic.id]}
+        aria-label={`${collapsed[topic.id] ? "Expand" : "Collapse"} ${nameOf(topic)}`}
+        onClick={() => toggleSection(topic.id)}><Chevron expanded={!collapsed[topic.id]} /></button>
+      <div>{titleFor("topic", topic, `h${Math.min(depth + 2, 6)}`)}</div>
+      <div className="item-controls">
+        {topic.status !== "published" && <Status value={topic.status} />}
+        {editMode && menu("topic", topic, lessonId)}
+      </div>
+    </header>
+    {!collapsed[topic.id] && <div className="workspace-section-body">
+      {topic.descriptionEn && <p className="workspace-description">{topic.descriptionEn}</p>}
+      {activityRows(children(outlineActivities, "topicId", topic.id), topic.id)}
+      {editMode && allowed("activity", "create") && <AddContent label="Add activity or resource" disabled={busy} onClick={() => setChooserTopic(topic)} />}
+      {editMode && allowed("topic", "create") && topicNumber(topic) &&
+        lessonTopics.filter((entry) => topicNumber(entry) === topicNumber(topic)).length === 1 &&
+        <button type="button" className="workspace-text-button" disabled={busy}
+          aria-label={`Add subtopic to ${nameOf(topic)}`} onClick={() => addTopic(topic)}>+ Add subtopic</button>}
+      {subsections.length > 0 && <div className="workspace-subtopics">
+        {subsections.map((node) => topicSection(node, depth + 1))}
+      </div>}
+    </div>}
+  </section>;
   const saveSettings = async (values) => {
     setBusy(true); setError(""); setNotice("");
     try {
@@ -385,35 +515,32 @@ export const CourseContentPage = ({ user, headerActions }) => {
   const editToggle = tab === "course" && editable && <label className="edit-toggle workspace-edit-toggle">Edit mode
     <input aria-label="Edit mode" checked={editMode} onChange={(event) => setSearch(workspaceQuery(tab, event.target.checked), { replace: true })} type="checkbox" />
   </label>;
-  return <section className={`course-content course-workspace${!selectedLesson ? " course-overview" : ""}${indexClosed || !selectedLesson ? " workspace-index-closed" : ""}`}>
+  const hasLessonOutline = Boolean(selectedLesson && tab === "course");
+  const toggleOutline = (closed) => {
+    setIndexClosed(closed);
+    requestAnimationFrame(() => document.getElementById("lesson-outline-toggle")?.focus({ preventScroll: true }));
+  };
+  return <section className={`course-content course-workspace${!selectedLesson ? " course-overview" : ""}${indexClosed || !hasLessonOutline ? " workspace-index-closed" : ""}`}>
     {headerActions && editToggle && createPortal(editToggle, headerActions)}
-    {selectedLesson && !indexClosed && <aside className="workspace-index" id="workspace-index">
+    {hasLessonOutline && !indexClosed && <aside className="workspace-index" id="workspace-index">
       <header>
-        <button type="button" className="workspace-icon-button" aria-label="Close course index" onClick={() => setIndexClosed(true)}>×</button>
-        <strong>Course index</strong>
+        <button id="lesson-outline-toggle" type="button" className="workspace-icon-button" aria-label="Close lesson outline"
+          aria-expanded="true" aria-controls="workspace-index" onClick={() => toggleOutline(true)}>×</button>
+        <strong>Lesson outline</strong>
       </header>
-      <nav aria-label="Course index">
-        {courseLessons.map((lesson) => <div className="workspace-index-lesson" key={lesson.id}>
-          <Link to={lessonPath(lesson.id)} title={nameOf(lesson)} aria-current={lesson.id === lessonId ? "page" : undefined}>
-            <span>{nameOf(lesson)}</span>
-          </Link>
-          {lesson.id === lessonId && tab === "course" && <div className="workspace-index-sections">
-            {indexButton(generalKey, generalKey, "General")}
-            {!collapsed[generalKey] && generalActivities.map((activity) => indexButton(generalKey, activity.id, nameOf(activity), true))}
-            {lessonTopics.map((topic) => <div className="workspace-index-group" key={topic.id}>
-              {indexButton(topic.id, topic.id, nameOf(topic))}
-              {!collapsed[topic.id] && children(outlineActivities, "topicId", topic.id).map((activity) => indexButton(topic.id, activity.id, nameOf(activity), true))}
-            </div>)}
-          </div>}
-        </div>)}
+      <nav aria-label="Lesson outline">
+        {indexSection(generalKey, "General", generalActivities)}
+        {topicTree.map(indexTopic)}
       </nav>
     </aside>}
+    {hasLessonOutline && indexClosed && <button id="lesson-outline-toggle" type="button"
+      className="workspace-icon-button workspace-index-reopen" aria-label="Open lesson outline" title="Open lesson outline"
+      aria-expanded="false" onClick={() => toggleOutline(false)}>☰</button>}
     <div className="workspace-course-main">
     <header className="content-header">
       <div>
         <nav aria-label="Breadcrumb">
-          {selectedLesson && indexClosed && <button type="button" className="workspace-icon-button" onClick={() => setIndexClosed(false)}>☰ Course index</button>}
-          <Link to="/courses/list">Courses</Link>{selectedLesson ? <> / <Link to={coursePath}>All lessons</Link></> : level && <> / <span>{nameOf(level)}</span></>}
+          <Link to="/courses/list">{selectedLesson ? "All courses" : "Courses"}</Link>{selectedLesson ? <> / <Link to={coursePath}>All lessons</Link></> : level && <> / <span>{nameOf(level)}</span></>}
         </nav>
         <h1 ref={lessonHeading}>{selectedLesson ? nameOf(selectedLesson) : `${nameOf(course)} — ${track.mediumLabel || track.Medium?.name || nameOf(track)}`}</h1>
       </div>
@@ -443,10 +570,26 @@ export const CourseContentPage = ({ user, headerActions }) => {
           </article>;
         })}
       </div>
-      {!courseLessons.length && <p className="resource-empty">There are no lessons in this medium yet.</p>}
+      {!courseLessons.length && <p className="resource-empty">There are no active lessons in this medium.</p>}
       {editMode && allowed("lesson", "create") && <AddContent label="Add lesson" disabled={busy} onClick={addLesson} />}
+      {archivedLessons.length > 0 && <details className="workspace-archived">
+        <summary>Archived lessons ({archivedLessons.length})</summary>
+        <ul>{archivedLessons.map((lesson) => <li key={lesson.id}>
+          <span>{nameOf(lesson)}</span>
+          {allowed("lesson", "publish") && <button className="workspace-text-button" type="button"
+            aria-label={`Restore ${nameOf(lesson)} as draft`} disabled={busy} onClick={() => action("lesson", lesson, "restore")}>Restore as draft</button>}
+        </li>)}</ul>
+      </details>}
     </section>}
     {tab === "course" && selectedLesson && <div className="course-outline">
+      {editMode && archivedContent.length > 0 && <details className="workspace-archived">
+        <summary>Archived topics and activities ({archivedContent.length})</summary>
+        <ul>{archivedContent.map(({ kind, item }) => <li key={`${kind}-${item.id}`}>
+          <span>{nameOf(item)}</span>
+          <button aria-label={`Delete ${nameOf(item)} permanently`} className="workspace-text-button danger" disabled={busy}
+            onClick={() => deleteContent(kind, item)} type="button">Delete permanently</button>
+        </li>)}</ul>
+      </details>}
       <section className="workspace-section" id={`workspace-${generalKey}`}>
         <header>
           <button className="workspace-chevron" type="button" aria-expanded={!collapsed[generalKey]} aria-label={`${collapsed[generalKey] ? "Expand" : "Collapse"} General`} onClick={() => toggleSection(generalKey)}><Chevron expanded={!collapsed[generalKey]} /></button>
@@ -466,22 +609,11 @@ export const CourseContentPage = ({ user, headerActions }) => {
           {activityRows(generalActivities)}
         </div>}
       </section>
-      {lessonTopics.map((topic) => <section className="workspace-section" id={`workspace-${topic.id}`} key={topic.id}>
-        <header>
-          <button className="workspace-chevron" type="button" aria-expanded={!collapsed[topic.id]} aria-label={`${collapsed[topic.id] ? "Expand" : "Collapse"} ${nameOf(topic)}`} onClick={() => toggleSection(topic.id)}><Chevron expanded={!collapsed[topic.id]} /></button>
-          <div>{titleFor("topic", topic, "h2")}</div>
-          <div className="item-controls">
-            {topic.status !== "published" && <Status value={topic.status} />}
-            {editMode && menu("topic", topic, lessonId)}
-          </div>
-        </header>
-        {!collapsed[topic.id] && <div className="workspace-section-body">
-          {topic.descriptionEn && <p className="workspace-description">{topic.descriptionEn}</p>}
-          {activityRows(children(outlineActivities, "topicId", topic.id), topic.id)}
-          {editMode && allowed("activity", "create") && <AddContent label="Add activity or resource" disabled={busy} onClick={() => setChooserTopic(topic)} />}
-        </div>}
-      </section>)}
-      {editMode && allowed("topic", "create") && <AddContent label="Add topic" disabled={busy} onClick={addTopic} />}
+      {topicTree.map((node) => topicSection(node))}
+      {editMode && allowed("topic", "create") && <div className="workspace-topic-actions">
+        <AddContent label="Add topic" disabled={busy} onClick={() => addTopic()} />
+        <button className="workspace-text-button" type="button" disabled={busy} onClick={() => setShowTopicImport(true)}>Import topics</button>
+      </div>}
     </div>}
     {tab === "settings" && selectedLesson && <>
       {availabilityMessage && <section className="lesson-availability" aria-label="Student availability">
@@ -502,6 +634,14 @@ export const CourseContentPage = ({ user, headerActions }) => {
     {tab === "participants" && <>
       <StudentsPage key={selectedLesson?.id || courseTrackId} courseTrackId={courseTrackId} lessonId={selectedLesson?.id} lessonTitle={selectedLesson?.title} />
     </>}
+    {showTopicImport && selectedLesson && <TopicImport key={lessonId} lessonId={lessonId}
+      onClose={() => setShowTopicImport(false)}
+      onImported={async ({ imported, skipped }) => {
+        setShowTopicImport(false);
+        const summary = imported === 1 ? "Added 1 topic as a draft." : imported ? `Added ${imported} topics as drafts.` : "No topics added.";
+        setNotice(summary + (skipped ? ` Skipped ${skipped} already in this lesson.` : ""));
+        await load();
+      }} />}
     {chooserTopic ? <ActivityChooser types={types} onClose={() => setChooserTopic(null)} onSelect={addActivity} /> : null}{editor ? <Editor error={error} editor={editor} type={typeFor(editor.data.type)} busy={busy} onCancel={() => setEditor(null)} onChange={(name, value) => setEditor((current) => ({ ...current, data: { ...current.data, [name]: value } }))} onSave={save} /> : null}</div></section>;
 };
 
@@ -515,6 +655,50 @@ const ContentDialog = ({ id, onClose, busy, children, className = "" }) => {
     event.preventDefault();
     if (!busy) onClose();
   }}>{children}</dialog>;
+};
+
+const TopicImport = ({ lessonId, onClose, onImported }) => {
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!file || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      if (!/\.csv$/i.test(file.name) || file.size > 256 * 1024)
+        throw new Error("Choose a .csv file up to 256 KB.");
+      let text;
+      try {
+        text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+      } catch {
+        throw new Error("Save the file as UTF-8 CSV and try again.");
+      }
+      const result = unwrap(await api.post(`/api/v1/admin/lessons/${lessonId}/topics/import`, { text }));
+      await onImported(result);
+    } catch (requestError) {
+      setError(requestError.response?.data?.error?.message || requestError.message || "Unable to import topics.");
+      setBusy(false);
+    }
+  };
+  return <ContentDialog id="topic-import-title" className="editor-dialog" onClose={onClose} busy={busy}>
+    <form onSubmit={submit}>
+      <header>
+        <h3 id="topic-import-title">Import lesson topics</h3>
+        <button aria-label="Close topic import" type="button" onClick={onClose} disabled={busy}>×</button>
+      </header>
+      <p className="topic-import-instructions">Upload a UTF-8 CSV with a <code>title</code> column and an optional <code>summary</code> column. Use numbered titles such as <code>1</code> and <code>1.1</code> to nest topics. New topics are added as drafts.</p>
+      <a href={`${import.meta.env.BASE_URL}templates/lesson-topics-template.csv`} download="lesson-topics-template.csv">Download CSV template</a>
+      <label>Topic list file<input type="file" required accept=".csv,text/csv" disabled={busy}
+        onChange={(event) => { setFile(event.target.files?.[0] || null); setError(""); }} /></label>
+      {error && <p className="admin-error" role="alert">{error}</p>}
+      <footer>
+        <button type="button" onClick={onClose} disabled={busy}>Cancel</button>
+        <button type="submit" disabled={!file || busy}>{busy ? "Importing…" : "Import topics"}</button>
+      </footer>
+    </form>
+  </ContentDialog>;
 };
 
 const learningTypes = ["practical_activity", "assignment", "quiz"];
@@ -550,11 +734,13 @@ const Editor = ({ editor, type, busy, error, onCancel, onChange, onSave }) => {
   return <ContentDialog id="content-editor-title" className="editor-dialog" onClose={onCancel} busy={busy}>
     <form onSubmit={(event) => { event.preventDefault(); onSave(); }}>
       <header>
-        <h3 id="content-editor-title">{isNew ? "Add" : "Edit"} {title}</h3>
+        <h3 id="content-editor-title">{editor.topicPrefix ? `Add subtopic ${editor.topicPrefix}` : `${isNew ? "Add" : "Edit"} ${title}`}</h3>
         <button aria-label="Close editor" onClick={onCancel} disabled={busy} type="button">×</button>
       </header>
       {error && <p role="alert" className="admin-error">{error}</p>}
-      <label>Title<input autoFocus required maxLength={255} value={data.title || ""} onChange={(event) => onChange("title", event.target.value)} /></label>
+      <label>Title<input autoFocus required maxLength={editor.topicPrefix ? 254 - editor.topicPrefix.length : 255} value={data.title || ""} onChange={(event) => onChange("title", event.target.value)} /></label>
+      {kind === "topic" && isNew && !editor.topicPrefix &&
+        <p className="topic-import-instructions">Start the title with a number, such as “2 Networks”, if you plan to add subtopics.</p>}
       {!activity && <>
         {textField("Summary", kind === "lesson" ? "summary" : "descriptionEn")}
         {kind === "lesson" && <>
